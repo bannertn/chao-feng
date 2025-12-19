@@ -21,14 +21,12 @@
             background-position: right 0.5rem center;
             background-size: 1.25rem;
             padding-right: 2rem;
-            color: #1e293b !important; /* 顯式設定文字顏色為 slate-800 */
+            color: #1e293b !important;
         }
-        /* 確保下拉選單內的選項文字顏色也是深色 */
         select option {
             color: #1e293b !important;
             background-color: #ffffff !important;
         }
-        /* 調整時間輸入框的時鐘圖示樣式，並增加右側內距避免擋到數字 */
         input[type="time"]::-webkit-calendar-picker-indicator {
             cursor: pointer;
             opacity: 0.6;
@@ -41,7 +39,6 @@
             @page { size: A4; margin: 1cm; }
             body { background-color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            /* 列印時隱藏時鐘圖示，保持畫面乾淨且避免數字被遮擋 */
             input[type="time"]::-webkit-calendar-picker-indicator {
                 display: none;
             }
@@ -98,7 +95,7 @@
             const duration = calculateDuration(entry.start, entry.end);
 
             return React.createElement('div', {
-                className: `min-h-[110px] p-2 border-r border-b transition-colors ${entry.skipped ? 'bg-gray-100' : isWeekend ? 'bg-indigo-50/40' : 'bg-white'} hover:bg-slate-50 relative group`
+                className: `min-h-[110px] p-2 border-r border-b transition-colors ${entry.skipped ? 'bg-gray-100/60' : isWeekend ? 'bg-indigo-50/40' : 'bg-white'} hover:bg-slate-50 relative group`
             }, [
                 React.createElement('div', { key: 'header', className: "flex justify-between items-start mb-2" }, [
                     React.createElement('div', { key: 'label', className: "flex items-baseline gap-1" }, [
@@ -108,28 +105,33 @@
                     React.createElement('div', { key: 'skip', className: "flex items-center gap-1 no-print" }, [
                         React.createElement('input', {
                             type: "checkbox",
+                            id: `skip-${dateKey}`,
                             checked: entry.skipped,
                             onChange: (e) => onUpdate(dateKey, { skipped: e.target.checked }),
                             className: "w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                         }),
-                        React.createElement('label', { className: "text-[10px] text-gray-400 cursor-pointer" }, "跳過")
+                        React.createElement('label', { htmlFor: `skip-${dateKey}`, className: "text-[10px] text-gray-400 cursor-pointer" }, "跳過")
                     ]),
-                    React.createElement('div', { key: 'print-h', className: "hidden print:block text-xs font-bold text-gray-700" }, entry.skipped ? '0小時' : `${duration.toFixed(1)}h`)
+                    !entry.skipped && React.createElement('div', { key: 'print-h', className: "hidden print:block text-xs font-bold text-gray-700" }, `${duration.toFixed(1)}h`)
                 ]),
-                React.createElement('div', { key: 'inputs', className: `space-y-1 ${entry.skipped ? 'opacity-30 pointer-events-none grayscale' : ''}` }, [
-                    ['上班', 'start'], ['下班', 'end']
-                ].map(([label, key]) => (
-                    React.createElement('div', { key, className: "flex items-center gap-1" }, [
-                        React.createElement('label', { key: 'l', className: "text-[10px] text-gray-400 w-7 no-print" }, label),
-                        React.createElement('input', {
-                            key: 'i',
-                            type: "time",
-                            value: entry[key],
-                            onChange: (e) => onUpdate(dateKey, { [key]: e.target.value }),
-                            className: "w-full text-xs p-1 pr-6 border border-transparent group-hover:border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-300 print:border-none"
-                        })
-                    ])
-                )))
+                entry.skipped 
+                    ? React.createElement('div', { key: 'vacation', className: "flex items-center justify-center h-12" }, 
+                        React.createElement('span', { className: "text-lg font-bold text-gray-400 tracking-widest" }, "休假")
+                      )
+                    : React.createElement('div', { key: 'inputs', className: "space-y-1" }, [
+                        ['上班', 'start'], ['下班', 'end']
+                    ].map(([label, key]) => (
+                        React.createElement('div', { key, className: "flex items-center gap-1" }, [
+                            React.createElement('label', { key: 'l', className: "text-[10px] text-gray-400 w-7 no-print" }, label),
+                            React.createElement('input', {
+                                key: 'i',
+                                type: "time",
+                                value: entry[key],
+                                onChange: (e) => onUpdate(dateKey, { [key]: e.target.value }),
+                                className: "w-full text-xs p-1 pr-6 border border-transparent group-hover:border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-300 print:border-none"
+                            })
+                        ])
+                    )))
             ]);
         };
 
