@@ -21,19 +21,42 @@
             background-position: right 0.5rem center;
             background-size: 1.25rem;
             padding-right: 2rem;
+            color: #1e293b !important; /* 顯式設定文字顏色為 slate-800 */
+        }
+        /* 確保下拉選單內的選項文字顏色也是深色 */
+        select option {
+            color: #1e293b !important;
+            background-color: #ffffff !important;
+        }
+        /* 調整時間輸入框的時鐘圖示樣式，並增加右側內距避免擋到數字 */
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        input[type="time"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
         }
         @media print {
             @page { size: A4; margin: 1cm; }
             body { background-color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
+            /* 列印時隱藏時鐘圖示，保持畫面乾淨且避免數字被遮擋 */
+            input[type="time"]::-webkit-calendar-picker-indicator {
+                display: none;
+            }
+            input[type="time"] {
+                border: none;
+                background: transparent;
+                padding: 0;
+            }
         }
     </style>
     <script type="importmap">
     {
       "imports": {
         "react": "https://esm.sh/react@19.0.0",
-        "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-        "@google/genai": "https://esm.sh/@google/genai@1.3.0"
+        "react-dom/client": "https://esm.sh/react-dom@19.0.0/client"
       }
     }
     </script>
@@ -45,7 +68,6 @@
     <script type="module">
         import React, { useState, useEffect, useCallback, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { GoogleGenAI } from '@google/genai';
 
         // --- Utils ---
         const timeToMinutes = (timeStr) => {
@@ -104,21 +126,20 @@
                             type: "time",
                             value: entry[key],
                             onChange: (e) => onUpdate(dateKey, { [key]: e.target.value }),
-                            className: "w-full text-xs p-1 border border-transparent group-hover:border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-300 print:border-none"
+                            className: "w-full text-xs p-1 pr-6 border border-transparent group-hover:border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-300 print:border-none"
                         })
                     ])
                 )))
             ]);
         };
 
-        const Summary = ({ totalHours, hourlyRate, onRateChange, isAnalyzing, onAnalyze, aiComment }) => {
+        const Summary = ({ totalHours, hourlyRate, onRateChange }) => {
             const totalSalary = totalHours * hourlyRate;
             return React.createElement('div', { className: "mt-8 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 print:border-2 print:border-black print:rounded-none" }, [
                 React.createElement('div', { key: 'top', className: "flex flex-col md:flex-row justify-between items-center mb-6 border-b pb-4 print:hidden" }, [
                     React.createElement('h2', { className: "text-xl font-bold text-slate-800" }, "薪資結算統計"),
                     React.createElement('div', { className: "flex gap-2" }, [
-                        React.createElement('button', { onClick: onAnalyze, disabled: isAnalyzing, className: "px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:opacity-50" }, isAnalyzing ? "分析中..." : "AI 智慧分析"),
-                        React.createElement('button', { onClick: () => window.print(), className: "px-4 py-2 bg-slate-800 text-white rounded-lg" }, "列印報表")
+                        React.createElement('button', { onClick: () => window.print(), className: "px-6 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors" }, "列印報表")
                     ])
                 ]),
                 React.createElement('div', { key: 'stats', className: "grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 print:grid-cols-3 print:gap-4" }, [
@@ -131,11 +152,7 @@
                         typeof s.val === 'string' ? React.createElement('div', { className: `text-2xl font-bold ${s.color} print:text-black` }, s.val) : s.val
                     ])
                 ))),
-                aiComment && React.createElement('div', { key: 'ai', className: "mb-8 p-4 bg-indigo-50 border-l-4 border-indigo-400 rounded-r-lg print:hidden" }, [
-                    React.createElement('div', { className: "text-indigo-600 font-bold mb-1" }, "✨ Gemini AI 分析建議"),
-                    React.createElement('p', { className: "text-sm text-indigo-900 whitespace-pre-wrap" }, aiComment)
-                ]),
-                React.createElement('div', { key: 'sign', className: "mt-12 pt-8 border-t grid grid-cols-3 gap-12 print:mt-4 print:pt-4" }, ['員工姓名簽章', '管理者審核', '日期'].map(t => (
+                React.createElement('div', { key: 'sign', className: "mt-12 pt-8 border-t grid grid-cols-3 gap-12 print:mt-4 print:pt-4" }, ['員工姓名簽章', '管理者簽名', '部門主管簽名'].map(t => (
                     React.createElement('div', { key: t, className: "flex flex-col gap-4" }, [
                         React.createElement('span', { className: "text-sm font-bold text-slate-600 print:text-black" }, t),
                         React.createElement('div', { className: "border-b-2 border-slate-300 h-10 print:border-black" })
@@ -150,11 +167,9 @@
             const [month, setMonth] = useState(new Date().getMonth());
             const [hourlyRate, setHourlyRate] = useState(190);
             const [calendarData, setCalendarData] = useState({});
-            const [aiComment, setAiComment] = useState("");
-            const [isAnalyzing, setIsAnalyzing] = useState(false);
 
             useEffect(() => {
-                const saved = localStorage.getItem('salary-v3-standalone');
+                const saved = localStorage.getItem('salary-v4-clean');
                 if (saved) {
                     const parsed = JSON.parse(saved);
                     setCalendarData(parsed.data || {});
@@ -163,7 +178,7 @@
             }, []);
 
             useEffect(() => {
-                localStorage.setItem('salary-v3-standalone', JSON.stringify({ data: calendarData, rate: hourlyRate }));
+                localStorage.setItem('salary-v4-clean', JSON.stringify({ data: calendarData, rate: hourlyRate }));
             }, [calendarData, hourlyRate]);
 
             const handleUpdateEntry = useCallback((dateKey, updates) => {
@@ -196,18 +211,6 @@
                 return grid;
             }, [year, month, calendarData]);
 
-            const runAnalysis = async () => {
-                setIsAnalyzing(true);
-                try {
-                    const ai = new GoogleGenAI({ apiKey: 'API_KEY_HERE' }); // Note: Environment will inject this
-                    const model = 'gemini-3-flash-preview';
-                    const prompt = `分析薪資：時薪 ${hourlyRate}, 總工時 ${totalHours.toFixed(2)}。請給予簡短專業建議。`;
-                    const result = await ai.models.generateContent({ model, contents: prompt });
-                    setAiComment(result.text);
-                } catch (e) { setAiComment("AI 分析暫時不可用。"); }
-                setIsAnalyzing(false);
-            };
-
             return React.createElement('div', { className: "max-w-6xl mx-auto p-4 md:p-8 min-h-screen" }, [
                 React.createElement('header', { key: 'h', className: "mb-8 flex justify-between items-end gap-4" }, [
                     React.createElement('div', null, [
@@ -222,7 +225,7 @@
                         React.createElement('select', { 
                             value: s.val, 
                             onChange: e => s.set(Number(e.target.value)),
-                            className: "bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-bold min-w-[100px]"
+                            className: "bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-bold min-w-[100px] text-slate-800"
                         }, s.opt.map(o => React.createElement('option', { key: o, value: o }, s.label === '月份' ? `${o+1} 月` : `${o} 年`)))
                     ])))
                 ]),
@@ -233,7 +236,7 @@
                         React.createElement(DayCell, { key: item.dateKey, ...item, onUpdate: handleUpdateEntry, isWeekend: item.dayOfWeek === 0 || item.dayOfWeek === 6 })
                     ))
                 ]),
-                React.createElement(Summary, { key: 's', totalHours, hourlyRate, onRateChange: setHourlyRate, isAnalyzing, onAnalyze: runAnalysis, aiComment })
+                React.createElement(Summary, { key: 's', totalHours, hourlyRate, onRateChange: setHourlyRate })
             ]);
         };
 
